@@ -1,1 +1,239 @@
+import java.util.PriorityQueue;
+import java.util.Comparator;
+import java.util.Scanner;
+
+public class MovieTicketingSimulation {
+    // PriorityQueue with Comparator to store ticket requests based on customer type priority
+    private static PriorityQueue<Ticket> ticketQueue = new PriorityQueue<>(new TicketComparator());
+
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        boolean running = true;
+
+        while (running) {
+            System.out.println("\n\t\t\t----- Movie Ticketing System Menu -----\n");
+            System.out.println("1. Add a ticket request");
+            System.out.println("2. Process and buy a ticket");
+            System.out.println("3. View pending ticket requests");
+            System.out.println("4. Exit system");
+            System.out.print("Enter your choice: ");
+            int choice = scanner.nextInt();
+            scanner.nextLine();  // Consume newline character
+
+            switch (choice) {
+                case 1:
+                    addTicketRequest(scanner);
+                    break;
+                case 2:
+                    processTicketRequest(scanner);
+                    break;
+                case 3:
+                    viewPendingRequests();
+                    break;
+                case 4:
+                    running = false;
+                    System.out.println("Exiting the system.");
+                    break;
+                default:
+                    System.out.println("Invalid choice. Please try again.");
+            }
+
+            // Display the queue status after every action
+            displayQueueStatus();
+        }
+        scanner.close();
+    }
+
+    // Method to add a ticket request
+    private static void addTicketRequest(Scanner scanner) {
+        System.out.print("Enter the name for the movie ticket request: ");
+        String name = scanner.nextLine();
+        System.out.print("Enter the movie name: ");
+        String movie = scanner.nextLine();
+
+        // Display available ticket types
+        System.out.println("Select ticket type:");
+        System.out.println("1. Regular Ticket (₱350)\n2. Premium Ticket (₱550)");
+        System.out.print("Enter the number corresponding to the ticket type: ");
+        int ticketTypeOption = scanner.nextInt();
+        String ticketType = getTicketType(ticketTypeOption);
+
+        System.out.print("Enter the number of tickets to purchase: ");
+        int numberOfTickets = scanner.nextInt();
+        scanner.nextLine(); // consume newline
+
+        // Display available customer types
+        System.out.println("Select customer type:");
+        System.out.println("1. Regular\n2. Senior Citizen\n3. PWD\n4. Student");
+        System.out.print("Enter the number corresponding to the customer type: ");
+        int customerTypeOption = scanner.nextInt();
+        String customerType = getCustomerType(customerTypeOption);
+
+        // Create a new ticket and add to the priority queue
+        Ticket ticket = new Ticket(name, movie, ticketType, numberOfTickets, customerType);
+        ticketQueue.add(ticket);
+        System.out.println("Ticket request added for: " + name + " (" + numberOfTickets + " " + ticketType + " ticket(s) for " + movie + ")");
+    }
+
+    // Method to process a ticket request and simulate buying a ticket
+    private static void processTicketRequest(Scanner scanner) {
+        if (!ticketQueue.isEmpty()) {
+            Ticket ticket = ticketQueue.poll();  // Get and remove the ticket from the queue
+            System.out.println("Processing ticket request for: " + ticket.getName());
+
+            // Calculate the total cost of the tickets
+            double totalCost = calculateTotalCost(ticket);
+            System.out.println("Total cost for " + ticket.getNumberOfTickets() + " " + ticket.getTicketType() + " ticket(s): ₱" + totalCost);
+
+            // Simulating payment process
+            System.out.print("Enter the amount to pay: ₱");
+            double amountPaid = scanner.nextDouble();
+
+            if (amountPaid >= totalCost) {
+                // Payment successful
+                System.out.println("Processing payment... Please wait.");
+                try {
+                    Thread.sleep(2000); // Simulating processing time
+                } catch (InterruptedException e) {  
+                    System.out.println("An error occurred during ticket processing.");
+                }
+
+                System.out.println("Ticket successfully purchased for " + ticket.getName() + " (" + ticket.getTicketType() + " ticket for " + ticket.getMovie() + ")");
+                if (amountPaid > totalCost) {
+                    double change = amountPaid - totalCost;
+                    System.out.println("Payment successful. Your change is: ₱" + change);
+                }
+            } else {
+                // Payment failed due to insufficient funds
+                System.out.println("Payment failed. Insufficient amount paid. Ticket purchase not completed.");
+            }
+        } else {
+            System.out.println("No pending ticket requests.");
+        }
+    }
+
+    // Method to calculate total cost based on ticket type and number of tickets
+    private static double calculateTotalCost(Ticket ticket) {
+        double ticketPrice = getTicketPrice(ticket.getTicketType());
+        double totalCost = ticketPrice * ticket.getNumberOfTickets();  // Total cost = price per ticket * number of tickets
+
+        // Apply discount for senior citizens, PWDs, and students
+        if (ticket.getCustomerType().equals("Senior Citizen") || ticket.getCustomerType().equals("PWD") || ticket.getCustomerType().equals("Student")) {
+            double discount = totalCost * 0.05;
+            totalCost -= discount;
+            System.out.println("A 5% discount was applied (₱" + discount + ").");
+        }
+
+        return totalCost;
+    }
+
+    // Method to get ticket type based on user selection
+    private static String getTicketType(int option) {
+        switch (option) {
+            case 1: return "Regular Ticket";
+            case 2: return "Premium Ticket";
+            default: return "Regular Ticket";  // Default option
+        }
+    }
+
+    // Method to get customer type based on user selection
+    private static String getCustomerType(int option) {
+        switch (option) {
+            case 1: return "Regular";
+            case 2: return "Senior Citizen";
+            case 3: return "PWD";
+            case 4: return "Student";
+            default: return "Regular";  // Default option
+        }
+    }
+
+    // Method to get ticket price based on the type
+    private static double getTicketPrice(String ticketType) {
+        switch (ticketType) {
+            case "Regular Ticket": return 350.00;
+            case "Premium Ticket": return 550.00;
+            default: return 350.00;  // Default price for unknown types
+        }
+    }
+
+    // Method to view all pending ticket requests
+    private static void viewPendingRequests() {
+        if (ticketQueue.isEmpty()) {
+            System.out.println("No pending ticket requests.");
+        } else {
+            System.out.println("Pending ticket requests:");
+            for (Ticket ticket : ticketQueue) {
+                System.out.println(ticket.getName() + " (" + ticket.getNumberOfTickets() + " " + ticket.getTicketType() + " ticket(s) for " + ticket.getMovie() + ")");
+            }
+        }
+    }
+
+    // Method to display the current status of the queue
+    private static void displayQueueStatus() {
+        if (ticketQueue.isEmpty()) {
+            System.out.println("Queue Status: [Empty]");
+        } else {
+            System.out.println("Queue Status: " + ticketQueue.size() + " pending request(s)");
+            for (Ticket ticket : ticketQueue) {
+                System.out.println("- " + ticket.getName() + " (" + ticket.getNumberOfTickets() + " " + ticket.getTicketType() + " ticket(s) for " + ticket.getMovie() + ")");
+            }
+        }
+    }
+}
+
+// Ticket class to represent a ticket request
+class Ticket {
+    private String name;
+    private String movie;
+    private String ticketType;
+    private int numberOfTickets;
+    private String customerType;
+
+    public Ticket(String name, String movie, String ticketType, int numberOfTickets, String customerType) {
+        this.name = name;
+        this.movie = movie;
+        this.ticketType = ticketType;
+        this.numberOfTickets = numberOfTickets;
+        this.customerType = customerType;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getMovie() {
+        return movie;
+    }
+
+    public String getTicketType() {
+        return ticketType;
+    }
+
+    public int getNumberOfTickets() {
+        return numberOfTickets;
+    }
+
+    public String getCustomerType() {
+        return customerType;
+    }
+}
+
+// Comparator to prioritize ticket requests based on customer type
+class TicketComparator implements Comparator<Ticket> {
+    @Override
+    public int compare(Ticket t1, Ticket t2) {
+        return getPriority(t1.getCustomerType()) - getPriority(t2.getCustomerType());
+    }
+
+    // Priority for customer types (lower number means higher priority)
+    private int getPriority(String customerType) {
+        switch (customerType) {
+            case "Senior Citizen": return 1;
+            case "PWD": return 2;
+            case "Student": return 3;
+            case "Regular": return 4;
+            default: return 4;
+        }
+    }
+}
 
